@@ -118,9 +118,9 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 <!-- CONTACT -->
 ## Contact
 
-Your Name - [@your_twitter](https://twitter.com/your_username) - email@example.com
+Your Name - [@yJeremy Brown](https://twitter.com/JEREMYJAYBROWN)
 
-Project Link: [https://github.com/your_username/repo_name](https://github.com/your_username/repo_name)
+Project Link: [https://github.com/AustanBrown/GraphPlotter](https://github.com/AustanBrown/GraphPlotter)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
