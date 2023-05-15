@@ -1,0 +1,43 @@
+{
+  "name": "graphplotter",
+  "private": true,
+  "version": "1.0.0",
+  "main": "main.js",
+  "type": "module",
+  "description": "Simple graph plotting aplication using ReactJS, D3.js and Tailwind CSS",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "config": "npx tailwindcss init -p"
+  },
+  "keywords": [
+    "Graph",
+    "function",
+    "math",
+    "plot",
+    "mathjs",
+    "react",
+    "tailwind"
+  ],
+  "author": "Jeremy Brown",
+  "license": "MIT",
+  "dependencies": {
+    "@heroicons/react": "^2.0.16",
+    "d3": "^7.8.2",
+    "mathjs": "^11.7.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/forms": "^0.5.3",
+    "@types/react": "^18.0.28",
+    "@types/react-dom": "^18.0.11",
+    "@vitejs/plugin-react": "^3.1.0",
+    "autoprefixer": "^10.4.14",
+    "postcss": "^8.4.21",
+    "tailwindcss": "^3.2.7",
+    "vite": "^4.2.0"
+  }
+}
