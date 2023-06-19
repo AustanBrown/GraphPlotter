@@ -1,16 +1,20 @@
 import { useEffect } from "react";
 import * as d3 from "d3";
 import * as math from "mathjs";
+import { AdjustmentsHorizontalIcon, ArrowDownTrayIcon } from "@heroicons/react/24/solid";
+import domtoimage from 'dom-to-image';
 
 import Tooltip from "./Tooltip";
 
-export default function Grid({equations, domain, range})
+export default function Grid({equations, domain, range, axesToggleHandler})
 {
     const canvas = d3.select("#canvas");
     let xScale = null;
     let yScale = null;
     let xAxis = null;
     let yAxis = null;
+    let xAxisSelection = null;
+    let yAxisSelection = null;
     let newXScale = null;
     let newYScale = null;
     let width = 0;
@@ -83,20 +87,30 @@ export default function Grid({equations, domain, range})
         d3.selectAll("line.verticalGrid").remove();
     }
 
+    const saveGraphToImg = () =>
+    {
+        var canvas = document.getElementById("canvas");
+        domtoimage.toBlob(canvas).then(blobData =>
+        {
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blobData);
+            link.download = "graph.png";
+            link.click();
+            URL.revokeObjectURL(link.href);
+        });
+    }
+
     const zoomFunc = d3.zoom()
     .scaleExtent([1, 8])
     .on('zoom', event =>
     {
         //removeGridLines();
-        const tempXAxis = d3.select("#x-axis");
-        const tempYAxis = d3.select("#y-axis");
         newXScale = event.transform.rescaleX(xScale);
         newYScale = event.transform.rescaleY(yScale);
         let xAxisPos = newYScale(0);
         let yAxisPos = newXScale(0)
-        //console.log(`The y-axis is located at x = ${yAxisPos}`);
-        tempXAxis.call(d3.axisBottom(newXScale)).attr("transform", `translate(0, ${newYScale(0)})`);
-        tempYAxis.call(d3.axisLeft(newYScale)).attr("transform", `translate(${newXScale(0)}, 0)`);
+        xAxisSelection.call(d3.axisBottom(newXScale)).attr("transform", `translate(0, ${newYScale(0)})`);
+        yAxisSelection.call(d3.axisLeft(newYScale)).attr("transform", `translate(${newXScale(0)}, 0)`);
         line = d3.line()
         .x(d => newXScale(d[0]))
         .y(d => newYScale(d[1]))
@@ -118,7 +132,6 @@ export default function Grid({equations, domain, range})
         {
             d3.select("#graphTooltip").style("visibility", "hidden");
         });
-        /*drawGridLines(tempXAxis.selectAll(".tick").data(), newYScale.ticks());*/
 
     });
 
@@ -154,7 +167,7 @@ export default function Grid({equations, domain, range})
         }
         else
         {
-            canvas.selectAll("line.horizontalGrid").data(xTicks).enter()
+            canvas.selectAll("line.horizontalGrid").data(yTicks).enter()
             .append("line")
             .attr("class", "horizontalGrid")
             .attr("x1", 0)
@@ -165,7 +178,7 @@ export default function Grid({equations, domain, range})
             .attr("stroke-dasharray", "4")
             .attr("stroke-width", "1");
 
-            canvas.selectAll("line.verticalGrid").data(yTicks).enter()
+            canvas.selectAll("line.verticalGrid").data(xTicks).enter()
             .append("line")
             .attr("class", "verticalGrid")
             .attr("x1", d => xScale(d))
@@ -193,8 +206,8 @@ export default function Grid({equations, domain, range})
         xAxis = d3.axisBottom(xScale).ticks(21);
         yAxis = d3.axisRight(yScale).ticks(21);
 
-        canvas.append("g").attr("id", "x-axis").call(xAxis).attr("transform", `translate(0, ${height / 2})`);
-        canvas.append("g").attr("id", "y-axis").call(yAxis).attr("transform", `translate(${width / 2}, 0)`);
+        xAxisSelection = canvas.append("g").attr("id", "x-axis").call(xAxis).attr("transform", `translate(0, ${yScale(0)})`);
+        yAxisSelection = canvas.append("g").attr("id", "y-axis").call(yAxis).attr("transform", `translate(${xScale(0)}, 0)`);
 
         let xTicks = xScale.ticks(21);
         let yTicks = yScale.ticks(21);
@@ -214,6 +227,7 @@ export default function Grid({equations, domain, range})
 
     useEffect(() => 
     {
+        removeGridLines();
         const canvas = d3.select("#canvas");
 
         const gridWidth = canvas.style("width");
@@ -230,6 +244,11 @@ export default function Grid({equations, domain, range})
     
     return (
         <div className="col-span-9 bg-white">
+            <div className="bg-[#B39CD0] flex flex-col mr-2 px-3 py-3 mt-2 z-40 right-0 fixed rounded opacity-80 text-white font-bold">
+                <AdjustmentsHorizontalIcon className="w-6 h-6 cursor-pointer" onClick={() => axesToggleHandler()}/>
+                <ArrowDownTrayIcon className="w-6 h-6  cursor-pointer" onClick={() => saveGraphToImg() }/>
+
+            </div>
             <svg className="h-full w-full" id="canvas">
 
             </svg>

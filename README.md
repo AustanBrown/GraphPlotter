@@ -118,7 +118,7 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 <!-- CONTACT -->
 ## Contact
 
-Your Name - [@yJeremy Brown](https://twitter.com/JEREMYJAYBROWN)
+Your Name - [@Jeremy Brown](https://twitter.com/JEREMYJAYBROWN)
 
 Project Link: [https://github.com/AustanBrown/GraphPlotter](https://github.com/AustanBrown/GraphPlotter)
 
