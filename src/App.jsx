@@ -12,6 +12,15 @@ function App()
   const [range, setRange] = useState([-20, 20]);
   const [graphPropOpen, setGraphPropOpen] = useState(true);
   const [axesPropOpen, setAxesPropOpen] = useState(false);
+  const coordinateSystems = [
+    {id: 'RECT', name: 'Rectangular'},
+    {id: 'DEG', name: 'Trigonometric (Degrees)'},
+    {id: 'RAD', name: 'Trigonometric (Radians)'},
+  ];
+
+  const [coordSys, setCoordSys] = useState(coordinateSystems[0]);
+
+  console.log(`Co-ordinate system is ${coordSys['id']}`);
 
   const handleAddEquation = (newEquation, equationColour) =>
   {
@@ -65,9 +74,9 @@ function App()
   return (
     <div className="w-screen h-screen grid grid-cols-12">
       <Sidebar equations={equations} addEquationHandler={openGraphProp} removeEquationHandler={handleRemoveEquation}/>
-      <Grid equations={equations} domain={domain} range={range} axesToggleHandler={toggleAxesOpenProp}/>
+      <Grid equations={equations} domain={domain} range={range} axesToggleHandler={toggleAxesOpenProp} axesMode={coordSys}/>
       {graphPropOpen === true && <GraphProperties equationHandler={handleAddEquation} closeHandler={closeGraphProp}/>}
-      {axesPropOpen === true && <AxesProperties closeHandler={closeAxesProp} minDomain={domain[0]} maxDomain={domain[1]} minRange={range[0]} maxRange={range[1]} modifyDomain={(minX, maxX) => setDomain([minX, maxX])} modifyRange={(minY, maxY) => setRange([minY, maxY])}/>}
+      {axesPropOpen === true && <AxesProperties closeHandler={closeAxesProp} minDomain={domain[0]} maxDomain={domain[1]} minRange={range[0]} maxRange={range[1]} modifyDomain={(minX, maxX) => setDomain([minX, maxX])} modifyRange={(minY, maxY) => setRange([minY, maxY])} modes={coordinateSystems} setDefaultMode={(tmpMode) => setCoordSys(tmpMode)} defaultMode={coordSys}/>}
     </div>
   );
 }

@@ -6,8 +6,9 @@ import domtoimage from 'dom-to-image';
 
 import Tooltip from "./Tooltip";
 
-export default function Grid({equations, domain, range, axesToggleHandler})
+export default function Grid({equations, domain, range, axesToggleHandler, axesMode})
 {
+    console.log(`axesMode is ${axesMode['id']}`);
     const canvas = d3.select("#canvas");
     let xScale = null;
     let yScale = null;
@@ -27,6 +28,10 @@ export default function Grid({equations, domain, range, axesToggleHandler})
         return d3.scaleLinear().domain(domain).range(range);
     }
 
+    const convertRadiansToDegrees = rad => rad * (180 / Math.PI);
+
+    const convertRadiansToGradians = rad => rad  / 400 * 2 * Math.PI;
+
     const calculatePoints = eqn =>
     {
         let points = [];
@@ -37,7 +42,21 @@ export default function Grid({equations, domain, range, axesToggleHandler})
             let y = f(x);
             if(!isNaN(y))
             {
-                points.push([x, y]);
+                //points.push([x, y]);
+                switch(axesMode['id'])
+                {
+                    case 'RECT':
+                        points.push([x, y]);
+                        break;
+
+                    case 'DEG':
+                        points.push([convertRadiansToDegrees(x), y]);
+                        break;
+                    
+                    case 'RAD':
+                        points.push([x, y]);
+                        break;
+                }
             }
         }
         return points;

@@ -2,8 +2,9 @@ import { useState, useRef } from "react";
 
 import Dialog from "./Dialog";
 import Button from './Button';
+import { compositionDependencies } from "mathjs";
 
-export default function AxesProperties({closeHandler, minDomain, maxDomain, minRange, maxRange, modifyDomain, modifyRange})
+export default function AxesProperties({closeHandler, minDomain, maxDomain, minRange, maxRange, modifyDomain, modifyRange, modes, setDefaultMode, defaultMode})
 {
     const [isVisible, setIsVisible] = useState(true);
     const [formIsInvalid, setFormIsInvalid] = useState(false);
@@ -11,6 +12,9 @@ export default function AxesProperties({closeHandler, minDomain, maxDomain, minR
     const minY = useRef(minRange);
     const maxX = useRef(maxDomain);
     const maxY = useRef(maxRange);
+    const modeList = modes.map(mode => 
+        <option value={mode['id']} key={mode['id']}>{mode['name']}</option>
+    );
 
     const validateMaxMin = (max, min) => 
     {
@@ -23,6 +27,13 @@ export default function AxesProperties({closeHandler, minDomain, maxDomain, minR
         modifyDomain(minX.current, maxX.current);
         modifyRange(minY.current, maxY.current);
         closeHandler();
+    }
+
+    const coordinateSystemChange =  e =>
+    {
+        const setMode = modes.filter(mode => mode['id'] === e.target.value);
+        setDefaultMode(setMode[0]);
+        console.log(`The new mode is ${setMode[0]['id']}`);
     }
 
     const changeHandler = (ref) => (e) =>
@@ -74,6 +85,12 @@ export default function AxesProperties({closeHandler, minDomain, maxDomain, minR
             <h1 className="text-xl">Axes Properties</h1>
             <form onSubmit={submitForm}>
                 <div className="grid grid-cols-12 gap-x-4">
+                    <div className="col-span-12">
+                        <label htmlFor="coord-mode">Coordinate System: </label>
+                        <select id="coord-mode" name="coord-mode" defaultValue={defaultMode['id']} className="form-input w-full" onChange={coordinateSystemChange}>
+                            {modeList}
+                        </select>
+                    </div>
                     <div className="col-span-6">
                         <span className="text-bold block">x-axis</span>
                         <label htmlFor="min-x">Min: </label>
