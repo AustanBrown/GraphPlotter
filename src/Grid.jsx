@@ -2,7 +2,7 @@ import { memo, useEffect, useRef } from "react";
 import * as d3 from "d3";
 import * as math from "mathjs";
 import { AdjustmentsHorizontalIcon, ArrowDownTrayIcon } from "@heroicons/react/24/solid";
-import domtoimage from 'dom-to-image';
+import { toBlob } from 'html-to-image';
 
 import Tooltip from "./Tooltip";
 
@@ -221,19 +221,26 @@ function Grid({equations, domain, range, axesToggleHandler, axesMode})
         {
             return;
         }
-        domtoimage.toBlob(svgEl).then(blobData =>
+        // html-to-image resolves to null rather than rejecting when it cannot
+        // rasterise the node, so both paths have to be handled.
+        toBlob(svgEl).then(blobData =>
         {
+            if(blobData === null)
+            {
+                return;
+            }
+            const url = URL.createObjectURL(blobData);
             const link = document.createElement("a");
-            link.href = URL.createObjectURL(blobData);
+            link.href = url;
             link.download = "graph.png";
             link.click();
-            URL.revokeObjectURL(link.href);
+            URL.revokeObjectURL(url);
         });
     }
 
     return (
         <div className="col-span-9 bg-white">
-            <div className="bg-[#B39CD0] flex flex-col mr-2 px-3 py-3 mt-2 z-40 right-0 fixed rounded opacity-80 text-white font-bold">
+            <div className="bg-[#B39CD0] flex flex-col mr-2 px-3 py-3 mt-2 z-40 right-0 fixed rounded-sm opacity-80 text-white font-bold">
                 <button type="button" aria-label="Axes properties" onClick={axesToggleHandler}>
                     <AdjustmentsHorizontalIcon className="w-6 h-6 cursor-pointer" aria-hidden="true"/>
                 </button>

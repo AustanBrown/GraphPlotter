@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Simple graph plotting aplication using ReactJS, D3.js and Tailwind CSS",
+  "description": "Simple graph plotting application using ReactJS, D3.js and Tailwind CSS",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -22,28 +22,27 @@
   "author": "Jeremy Brown",
   "license": "MIT",
   "dependencies": {
-    "@heroicons/react": "^2.0.16",
-    "d3": "^7.8.2",
-    "dom-to-image": "^2.6.0",
-    "mathjs": "^11.7.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "@heroicons/react": "^2.2.0",
+    "d3": "^7.9.0",
+    "html-to-image": "^1.11.13",
+    "mathjs": "^15.2.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
     "uuid": "^9.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
     "@tailwindcss/forms": "^0.5.3",
-    "@types/react": "^18.0.28",
-    "@types/react-dom": "^18.0.11",
-    "@vitejs/plugin-react": "^3.1.0",
-    "autoprefixer": "^10.4.14",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
     "eslint": "^9.39.5",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.6",
     "globals": "^17.12.0",
-    "postcss": "^8.4.21",
-    "tailwindcss": "^3.2.7",
-    "vite": "^4.2.0"
+    "tailwindcss": "^4.3.3",
+    "vite": "^8.3.0"
   }
 }
