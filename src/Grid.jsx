@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { memo, useEffect, useRef } from "react";
 import * as d3 from "d3";
 import * as math from "mathjs";
 import { AdjustmentsHorizontalIcon, ArrowDownTrayIcon } from "@heroicons/react/24/solid";
@@ -6,188 +6,130 @@ import domtoimage from 'dom-to-image';
 
 import Tooltip from "./Tooltip";
 
-export default function Grid({equations, domain, range, axesToggleHandler, axesMode})
+const TICK_COUNT = 21;
+const SAMPLE_STEP = 0.03125;
+
+const convertRadiansToDegrees = rad => rad * (180 / Math.PI);
+
+const createScale = (domain, range) =>
 {
-    console.log(`axesMode is ${axesMode['id']}`);
-    const canvas = d3.select("#canvas");
-    let xScale = null;
-    let yScale = null;
-    let xAxis = null;
-    let yAxis = null;
-    let xAxisSelection = null;
-    let yAxisSelection = null;
-    let newXScale = null;
-    let newYScale = null;
-    let width = 0;
-    let sidebarWidth = 0;
-    let height = 0;
-    let line = null;
+    return d3.scaleLinear().domain(domain).range(range);
+}
 
-    const createScale = (domain, range) =>
+// Pure: samples an equation over the domain. A malformed equation string makes mathjs
+// throw, so everything is guarded and a bad equation simply yields no points instead of
+// blanking the whole graph.
+const calculatePoints = (eqn, domain, axesModeId) =>
+{
+    const points = [];
+    try
     {
-        return d3.scaleLinear().domain(domain).range(range);
-    }
-
-    const convertRadiansToDegrees = rad => rad * (180 / Math.PI);
-
-    const convertRadiansToGradians = rad => rad  / 400 * 2 * Math.PI;
-
-    const calculatePoints = eqn =>
-    {
-        let points = [];
-        const simplifiedEqn = math.simplify(eqn).toString();
         const f = math.evaluate(`f(x) = ${eqn}`);
-        for(let x = domain[0]; x <= domain[1]; x = x + 0.03125)
+        for(let x = domain[0]; x <= domain[1]; x = x + SAMPLE_STEP)
         {
-            let y = f(x);
+            const y = f(x);
             if(!isNaN(y))
             {
-                //points.push([x, y]);
-                switch(axesMode['id'])
+                switch(axesModeId)
                 {
-                    case 'RECT':
-                        points.push([x, y]);
-                        break;
-
                     case 'DEG':
                         points.push([convertRadiansToDegrees(x), y]);
                         break;
-                    
+
                     case 'RAD':
+                    case 'RECT':
+                    default:
                         points.push([x, y]);
                         break;
                 }
             }
         }
-        return points;
     }
-
-    const drawGraph = (eqn, selector, xScale, yScale) =>
+    catch
     {
-        const sidebar = d3.select("#sidebar");
-        const sidebarWidth = sidebar.style("width");
-        const sidebarHeight = sidebar.style("height");
-        const width = +sidebarWidth.slice(0, sidebarWidth.length - 2);
-        const height = parseInt(sidebarHeight.slice(0, sidebarHeight.length - 2));
-        line = d3.line()
-        .x(d => xScale(d[0]))
-        .y(d => yScale(d[1]))
-        .defined(d => !isNaN(yScale(d[1])))
-        .curve(d3.curveCardinal);
-
-        const newGraph = selector.append("path")
-        .datum(calculatePoints(eqn.equation))
-        .attr("id", eqn.id)
-        .attr("class", "graph")
-        .attr("fill", "none")
-        .attr("stroke", eqn.colour)
-        .attr("stroke-width", 2.5)
-        .attr("d", line);
-
-        newGraph.on("mouseover", (d, i) =>
-        {
-            const tooltip = d3.select("#graphTooltip");
-            tooltip.style("visibility", "visible");
-            tooltip.html(`<p>x = ${xScale.invert(d.pageX - width)} y = ${yScale.invert(d.pageY)}</p>`);
-        })
-        .on("mousemove", (d, i) =>
-        {
-            d3.select("#graphTooltip").style("top", (d.pageY)+"px").style("left", (d.pageX)+"px");
-        })
-        .on("mouseout", (d, i) =>
-        {
-            d3.select("#graphTooltip").style("visibility", "hidden");
-        });
+        // Invalid equation: keep whatever was sampled before the failure (usually nothing)
+        // so the remaining equations still plot.
     }
+    return points;
+}
 
-    const removeGridLines = () =>
+function Grid({equations, domain, range, axesToggleHandler, axesMode})
+{
+    const svgRef = useRef(null);
+    const tooltipRef = useRef(null);
+    // The zoom behaviour is created once and kept in a ref; the transform is kept in a ref
+    // as well so panning/zooming survives a redraw (new equation, new domain, ...).
+    const zoomRef = useRef(null);
+    const transformRef = useRef(d3.zoomIdentity);
+
+    useEffect(() =>
     {
-        d3.selectAll("line.horizontalGrid").remove();
-        d3.selectAll("line.verticalGrid").remove();
-    }
-
-    const saveGraphToImg = () =>
-    {
-        var canvas = document.getElementById("canvas");
-        domtoimage.toBlob(canvas).then(blobData =>
+        const svgEl = svgRef.current;
+        if(svgEl === null)
         {
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blobData);
-            link.download = "graph.png";
-            link.click();
-            URL.revokeObjectURL(link.href);
-        });
-    }
-
-    const zoomFunc = d3.zoom()
-    .scaleExtent([1, 8])
-    .on('zoom', event =>
-    {
-        //removeGridLines();
-        newXScale = event.transform.rescaleX(xScale);
-        newYScale = event.transform.rescaleY(yScale);
-        let xAxisPos = newYScale(0);
-        let yAxisPos = newXScale(0)
-        xAxisSelection.call(d3.axisBottom(newXScale)).attr("transform", `translate(0, ${newYScale(0)})`);
-        yAxisSelection.call(d3.axisLeft(newYScale)).attr("transform", `translate(${newXScale(0)}, 0)`);
-        line = d3.line()
-        .x(d => newXScale(d[0]))
-        .y(d => newYScale(d[1]))
-        .defined(d => !isNaN(yScale(d[1])))
-        .curve(d3.curveCardinal);
-        drawGridLines();
-        let existingGraphs = d3.selectAll("path.graph").attr("d", line);
-        existingGraphs.on("mouseover", (d, i) =>
-        {
-            const tooltip = d3.select("#graphTooltip");
-            tooltip.style("visibility", "visible");
-            tooltip.html(`<p>x = ${newXScale.invert(((d.pageX - sidebarWidth)))} y = ${newYScale.invert(d.pageY)}</p>`);
-        })
-        .on("mousemove", (d, i) =>
-        {
-            d3.select("#graphTooltip").style("top", (d.pageY)+"px").style("left", (d.pageX)+"px");
-        })
-        .on("mouseout", (d, i) =>
-        {
-            d3.select("#graphTooltip").style("visibility", "hidden");
-        });
-
-    });
-
-    const drawGridLines = (xTicks, yTicks) =>
-    {
-        d3.selectAll(".horizontalGrid").remove();
-        d3.selectAll(".verticalGrid").remove();
-        if(xTicks === undefined && yTicks === undefined)
-        {
-            let tempYTicks = d3.select("#y-axis").selectAll(".tick").data();
-            canvas.selectAll("line.horizontalGrid").data(tempYTicks).enter()
-            .append("line")
-            .attr("class", "horizontalGrid")
-            .attr("x1", 0)
-            .attr("x2", width)
-            .attr("y1", d => newYScale(d))
-            .attr("y2", d => newYScale(d))
-            .attr("stroke", "grey")
-            .attr("stroke-dasharray", "4")
-            .attr("stroke-width", "1");
-
-            let tempXTicks = d3.select("#x-axis").selectAll(".tick").data();
-            canvas.selectAll("line.verticalGrid").data(tempXTicks).enter()
-            .append("line")
-            .attr("class", "verticalGrid")
-            .attr("x1", d => newXScale(d))
-            .attr("x2", d => newXScale(d))
-            .attr("y1", 0)
-            .attr("y2", height)
-            .attr("stroke", "grey")
-            .attr("stroke-dasharray", "4")
-            .attr("stroke-width", "1");
+            return undefined;
         }
-        else
+
+        const canvas = d3.select(svgEl);
+        // Start from a clean slate: under StrictMode this effect runs, is cleaned up and
+        // runs again, so the draw must never append on top of a previous pass.
+        canvas.selectAll("*").remove();
+
+        const bounds = svgEl.getBoundingClientRect();
+        const width = bounds.width;
+        const height = bounds.height;
+
+        const baseXScale = createScale(domain, [0, width]);
+        const baseYScale = createScale(range, [height, 0]);
+
+        // Stable containers, so zooming only updates attributes instead of re-creating nodes.
+        const xAxisSelection = canvas.append("g").attr("id", "x-axis");
+        const yAxisSelection = canvas.append("g").attr("id", "y-axis");
+        const gridGroup = canvas.append("g").attr("id", "grid-lines");
+        const graphGroup = canvas.append("g").attr("id", "graphs");
+
+        // Scales currently on screen. Reassigned by draw() and read by the pointer handlers,
+        // which are attached once and therefore must not close over a fixed scale.
+        let xScale = baseXScale;
+        let yScale = baseYScale;
+
+        const showTooltip = event =>
         {
-            canvas.selectAll("line.horizontalGrid").data(yTicks).enter()
-            .append("line")
+            const tooltipEl = tooltipRef.current;
+            if(tooltipEl === null)
+            {
+                return;
+            }
+            const [pointerX, pointerY] = d3.pointer(event, svgEl);
+            tooltipEl.textContent = `x = ${xScale.invert(pointerX)} y = ${yScale.invert(pointerY)}`;
+            tooltipEl.style.visibility = "visible";
+        }
+
+        const moveTooltip = event =>
+        {
+            const tooltipEl = tooltipRef.current;
+            if(tooltipEl === null)
+            {
+                return;
+            }
+            tooltipEl.style.top = `${event.pageY}px`;
+            tooltipEl.style.left = `${event.pageX}px`;
+        }
+
+        const hideTooltip = () =>
+        {
+            const tooltipEl = tooltipRef.current;
+            if(tooltipEl !== null)
+            {
+                tooltipEl.style.visibility = "hidden";
+            }
+        }
+
+        const drawGridLines = () =>
+        {
+            gridGroup.selectAll("line.horizontalGrid")
+            .data(yScale.ticks(TICK_COUNT))
+            .join("line")
             .attr("class", "horizontalGrid")
             .attr("x1", 0)
             .attr("x2", width)
@@ -197,8 +139,9 @@ export default function Grid({equations, domain, range, axesToggleHandler, axesM
             .attr("stroke-dasharray", "4")
             .attr("stroke-width", "1");
 
-            canvas.selectAll("line.verticalGrid").data(xTicks).enter()
-            .append("line")
+            gridGroup.selectAll("line.verticalGrid")
+            .data(xScale.ticks(TICK_COUNT))
+            .join("line")
             .attr("class", "verticalGrid")
             .attr("x1", d => xScale(d))
             .attr("x2", d => xScale(d))
@@ -208,70 +151,103 @@ export default function Grid({equations, domain, range, axesToggleHandler, axesM
             .attr("stroke-dasharray", "4")
             .attr("stroke-width", "1");
         }
-    }
 
-    const drawAxes = () =>
-    {
-        const canvas = d3.select("#canvas");
-        canvas.selectAll("*").remove();
-        const gridWidth = canvas.style("width");
-        const gridHeight = canvas.style("height");
-        const width = +gridWidth.slice(0, gridWidth.length - 2);
-        const height = parseInt(gridHeight.slice(0, gridHeight.length - 2));
-        
-        xScale = createScale(domain, [0, width]);
-        yScale = createScale(range, [height, 0]);
-
-        xAxis = d3.axisBottom(xScale).ticks(21);
-        yAxis = d3.axisRight(yScale).ticks(21);
-
-        xAxisSelection = canvas.append("g").attr("id", "x-axis").call(xAxis).attr("transform", `translate(0, ${yScale(0)})`);
-        yAxisSelection = canvas.append("g").attr("id", "y-axis").call(yAxis).attr("transform", `translate(${xScale(0)}, 0)`);
-
-        let xTicks = xScale.ticks(21);
-        let yTicks = yScale.ticks(21);
-
-        drawGridLines(xTicks, yTicks);
-
-        //.attr("style", "stroke:rgb(0,0,0);stroke-width:1");
-        if(equations.length > 0)
+        // Redraws everything for a given zoom transform. Sampled points never change here,
+        // only the scales, so the paths keep their data and just get a new "d".
+        const draw = transform =>
         {
-            equations.map((eqn, i) =>
-            {
-                let points = calculatePoints(eqn.equation);
-                drawGraph(eqn, canvas, xScale, yScale);
-            });
+            xScale = transform.rescaleX(baseXScale);
+            yScale = transform.rescaleY(baseYScale);
+
+            xAxisSelection.call(d3.axisBottom(xScale).ticks(TICK_COUNT)).attr("transform", `translate(0, ${yScale(0)})`);
+            yAxisSelection.call(d3.axisRight(yScale).ticks(TICK_COUNT)).attr("transform", `translate(${xScale(0)}, 0)`);
+
+            drawGridLines();
+
+            const line = d3.line()
+            .x(d => xScale(d[0]))
+            .y(d => yScale(d[1]))
+            .defined(d => !isNaN(yScale(d[1])))
+            .curve(d3.curveCardinal);
+
+            graphGroup.selectAll("path.graph").attr("d", line);
         }
+
+        // Each path carries its sampled points as its datum; draw() only re-runs the line
+        // generator over them, so zooming never re-evaluates the equations.
+        equations.forEach(eqn =>
+        {
+            graphGroup.append("path")
+            .datum(calculatePoints(eqn.equation, domain, axesMode['id']))
+            .attr("id", eqn.id)
+            .attr("class", "graph")
+            .attr("fill", "none")
+            .attr("stroke", eqn.colour)
+            .attr("stroke-width", 2.5)
+            .on("mouseover", showTooltip)
+            .on("mousemove", moveTooltip)
+            .on("mouseout", hideTooltip);
+        });
+
+        if(zoomRef.current === null)
+        {
+            zoomRef.current = d3.zoom().scaleExtent([1, 8]);
+        }
+        const zoomBehaviour = zoomRef.current;
+        zoomBehaviour.on("zoom", event =>
+        {
+            transformRef.current = event.transform;
+            draw(event.transform);
+        });
+
+        canvas.call(zoomBehaviour);
+        // Re-applying the stored transform both restores the previous zoom/pan after a
+        // redraw and emits a zoom event, which performs the initial draw.
+        canvas.call(zoomBehaviour.transform, transformRef.current);
+
+        return () =>
+        {
+            zoomBehaviour.on("zoom", null);
+            canvas.on(".zoom", null);
+            canvas.selectAll("*").remove();
+            hideTooltip();
+        };
+    }, [equations, domain, range, axesMode]);
+
+    const saveGraphToImg = () =>
+    {
+        const svgEl = svgRef.current;
+        if(svgEl === null)
+        {
+            return;
+        }
+        domtoimage.toBlob(svgEl).then(blobData =>
+        {
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blobData);
+            link.download = "graph.png";
+            link.click();
+            URL.revokeObjectURL(link.href);
+        });
     }
 
-    useEffect(() => 
-    {
-        removeGridLines();
-        const canvas = d3.select("#canvas");
-
-        const gridWidth = canvas.style("width");
-        const gridHeight = canvas.style("height");
-        width = +gridWidth.slice(0, gridWidth.length - 2);
-        let sidebarPixels = d3.select("#sidebar").style("width");
-        sidebarWidth = +sidebarPixels.slice(0, sidebarPixels.length - 2);
-        height = parseInt(gridHeight.slice(0, gridHeight.length - 2));
-        drawAxes();
-        canvas.call(zoomFunc);
-    });
-
-    //canvas.call(zoomFunc);
-    
     return (
         <div className="col-span-9 bg-white">
             <div className="bg-[#B39CD0] flex flex-col mr-2 px-3 py-3 mt-2 z-40 right-0 fixed rounded opacity-80 text-white font-bold">
-                <AdjustmentsHorizontalIcon className="w-6 h-6 cursor-pointer" onClick={() => axesToggleHandler()}/>
-                <ArrowDownTrayIcon className="w-6 h-6  cursor-pointer" onClick={() => saveGraphToImg() }/>
+                <button type="button" aria-label="Axes properties" onClick={axesToggleHandler}>
+                    <AdjustmentsHorizontalIcon className="w-6 h-6 cursor-pointer" aria-hidden="true"/>
+                </button>
+                <button type="button" aria-label="Download graph as PNG" onClick={saveGraphToImg}>
+                    <ArrowDownTrayIcon className="w-6 h-6 cursor-pointer" aria-hidden="true"/>
+                </button>
 
             </div>
-            <svg className="h-full w-full" id="canvas">
+            <svg ref={svgRef} className="h-full w-full" id="canvas">
 
             </svg>
-            <Tooltip />
+            <Tooltip ref={tooltipRef} />
         </div>
     );
 }
+
+export default memo(Grid);
