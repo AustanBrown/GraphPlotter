@@ -55,7 +55,7 @@ export default function AxesProperties({closeHandler, minDomain, maxDomain, minR
                         </select>
                     </div>
                     <div className="col-span-6">
-                        <span className="text-bold block">x-axis</span>
+                        <span className="font-bold block">x-axis</span>
                         <label htmlFor="min-x">Min: </label>
                         <input type="number" name="min-x" id="min-x" value={minX} onChange={e => setMinX(e.target.value)} required className="form-input w-full" />
                         <label htmlFor="max-x">Max: </label>
@@ -63,7 +63,7 @@ export default function AxesProperties({closeHandler, minDomain, maxDomain, minR
                     </div>
 
                     <div className="col-span-6">
-                        <span className="text-bold block">y-axis</span>
+                        <span className="font-bold block">y-axis</span>
                         <label htmlFor="min-y">Min: </label>
                         <input type="number" name="min-y" id="min-y" value={minY} onChange={e => setMinY(e.target.value)} required className="form-input w-full" />
                         <label htmlFor="max-y">Max: </label>
